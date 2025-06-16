@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Text, View, Image, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../../../supabase';
 
 import { style } from "./styles";
 import logo from '../../assets/logo.png';
@@ -14,14 +15,24 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  function getLogin() {
-    if (!email || !password) {
-      return Alert.alert('Atenção', 'Informe os Campos Obrigatórios');
-    }
-    // Simula login bem-sucedido e navega para a Home
-    console.log('Logado com Sucesso');
-    navigation.navigate('Home');
+async function getLogin() {
+  if (!email || !password) {
+    return Alert.alert('Atenção', 'Informe os Campos Obrigatórios');
   }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error(error);
+    return Alert.alert('Erro ao entrar', error.message);
+  }
+
+  console.log('Login realizado:', data);
+  navigation.navigate('Home');
+}
 
   function handleForgotPassword() {
     Alert.alert(

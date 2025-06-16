@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import { style } from './styles';  // Agora está correto!
+import { style } from './styles';
+import { supabase } from '../../../supabase'; // 👈 importa o cliente supabase
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Cadastro'>;
 
@@ -14,7 +16,7 @@ export default function Cadastro() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  function handleRegister() {
+  async function handleRegister() {
     if (!email || !password || !confirmPassword) {
       return Alert.alert('Atenção', 'Preencha todos os campos!');
     }
@@ -23,9 +25,23 @@ export default function Cadastro() {
       return Alert.alert('Erro', 'As senhas não coincidem!');
     }
 
-    // Aqui você pode enviar para o backend ou fazer o que quiser
-    console.log('Usuário cadastrado com sucesso!');
-    Alert.alert('Sucesso', 'Usuário cadastrado com sucesso!');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('Erro ao cadastrar:', error.message);
+      return Alert.alert('Erro no cadastro', error.message);
+    }
+
+    console.log('Usuário cadastrado:', data);
+
+    Alert.alert(
+      'Cadastro realizado!',
+      'Verifique seu e-mail para confirmar o cadastro.'
+    );
+
     navigation.navigate('Login');
   }
 

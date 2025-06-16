@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, Image } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { style } from "./styles";
 import logo from '../../assets/logo.png';
+import { supabase } from '../../../supabase'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -15,35 +15,49 @@ export default function Home() {
   const [ingredientes, setIngredientes] = useState('');
   const [receita, setReceita] = useState('');
 
-  // Receitas estáticas para exemplo
-  const receitasMap: { [key: string]: string } = {
-    frango: 'Estrogonofe de Frango: frango, creme de leite, ketchup, cebola.',
-    arroz: 'Arroz à grega: arroz, ervilha, cenoura, milho.',
-    tomate: 'Salada de Tomate: tomate, azeite, sal, manjericão.',
-    default: 'Desculpe, não encontrei uma receita para esses ingredientes.',
-  };
-
-  function buscarReceita() {
+  // 🔁 Busca receitas no Supabase conforme os ingredientes informados
+  async function buscarReceita() {
     if (!ingredientes.trim()) {
       Alert.alert('Atenção', 'Por favor, digite algum ingrediente.');
       return;
     }
 
-    const texto = ingredientes.toLowerCase();
+    const termos = ingredientes
+      .toLowerCase()
+      .split(',')
+      .map(i => i.trim());
 
-    if (texto.includes('frango')) {
-      setReceita(receitasMap.frango);
-    } else if (texto.includes('arroz')) {
-      setReceita(receitasMap.arroz);
-    } else if (texto.includes('tomate')) {
-      setReceita(receitasMap.tomate);
+    const { data, error } = await supabase
+      .from('receitas')
+      .select('*');
+
+    if (error) {
+      console.error('Erro ao buscar receitas:', error.message);
+      Alert.alert('Erro', 'Não foi possível buscar receitas.');
+      return;
+    }
+
+    const receitaEncontrada = data?.find(r =>
+      r.ingredientes.some((ing: string) =>
+        termos.includes(ing.toLowerCase())
+      )
+    );
+
+    if (receitaEncontrada) {
+      setReceita(`${receitaEncontrada.titulo}: ${receitaEncontrada.descricao}`);
     } else {
-      setReceita(receitasMap.default);
+      setReceita('Desculpe, não encontrei uma receita para esses ingredientes.');
     }
   }
 
-  function handleLogout() {
-    // Aqui você pode limpar o estado de login ou tokens, e voltar para a tela de Login
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Erro ao sair:', error.message);
+      Alert.alert('Erro', 'Não foi possível sair da conta.');
+      return;
+    }
+
     navigation.navigate('Login');
   }
 
