@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { style } from "./styles";
 import logo from '../../assets/logo.png';
-import { supabase } from '../../../supabase'
+import { supabase } from '../../../supabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -13,7 +13,7 @@ export default function Home() {
   const navigation = useNavigation<NavigationProp>();
 
   const [ingredientes, setIngredientes] = useState('');
-  const [receita, setReceita] = useState('');
+  const [receitas, setReceitas] = useState<any[]>([]);
 
   // 🔁 Busca receitas no Supabase conforme os ingredientes informados
   async function buscarReceita() {
@@ -37,16 +37,17 @@ export default function Home() {
       return;
     }
 
-    const receitaEncontrada = data?.find(r =>
+    const receitasEncontradas = data?.filter(r =>
       r.ingredientes.some((ing: string) =>
         termos.includes(ing.toLowerCase())
       )
     );
 
-    if (receitaEncontrada) {
-      setReceita(`${receitaEncontrada.titulo}: ${receitaEncontrada.descricao}`);
+    if (receitasEncontradas && receitasEncontradas.length > 0) {
+      setReceitas(receitasEncontradas);
     } else {
-      setReceita('Desculpe, não encontrei uma receita para esses ingredientes.');
+      setReceitas([]);
+      Alert.alert('Nenhuma receita encontrada', 'Desculpe, não encontrei nenhuma receita para esses ingredientes.');
     }
   }
 
@@ -78,12 +79,22 @@ export default function Home() {
         <Text style={style.buttonTextBlack}>Buscar Receita</Text>
       </TouchableOpacity>
 
-      {receita ? (
-        <View style={style.receitaBox}>
-          <Text style={style.receitaTitle}>Receita sugerida:</Text>
-          <Text style={style.receitaText}>{receita}</Text>
+      {receitas.length > 0 && (
+        <View style={[style.receitaBox, { maxHeight: 300 }]}>
+          <Text style={style.receitaTitle}>Receitas sugeridas:</Text>
+          <ScrollView>
+            {receitas.map((r, index) => (
+              <View key={index} style={{ marginBottom: 12 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{r.titulo}</Text>
+                <Text style={{ marginBottom: 4 }}>{r.descricao}</Text>
+                <Text style={{ fontStyle: 'italic', color: '#666' }}>
+                  Ingredientes: {r.ingredientes.join(', ')}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
-      ) : null}
+      )}
 
       <TouchableOpacity
         style={[style.buttonYellow, { marginTop: 20 }]}
